@@ -21,7 +21,9 @@ int pinDHT11 = 4;
 int pinVentola = 10;
 int ledPin[] = {36,38,40,42,44};
 int pulsantePin[] = {22,24,26,28,30};
+int pinFiamma = 13;
 
+int statoSensoreFiamma = 0;
 int statoLed[] = {LOW,LOW,LOW,LOW,LOW};
 int statoPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH};
 int ultimaLetturaPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH};
@@ -41,15 +43,18 @@ int temp_attuale = 0;
 int umi_attuale = 0;
 
 
+
 /** Funzioni **/
 void suona_allarme();
 String leggi_tag(RFID& lettore);
 void led_colore(int rosso, int verde, int blu);
 void messaggio_lcd(String messaggio);
 String converti_stato_allarme(int stato_allarme);
+void accendiSpegniLed(int statoLed[],int ledPin[], int i);
 
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600);
   SPI.begin();
   rc522.init();
   lcd.init();
@@ -62,6 +67,7 @@ void setup() {
   pinMode(pinLuceRossa, OUTPUT);
   pinMode(pinLuceVerde, OUTPUT);
   pinMode(pinLuceBlu, OUTPUT);
+  pinMode(pinFiamma, INPUT);
   for(int i = 0; i < 5; i++){
     pinMode(ledPin[i],OUTPUT);
     digitalWrite(ledPin[i],LOW);
@@ -79,19 +85,43 @@ void loop() {
   byte temperatura = 0;
   byte umidita = 0;
   byte data[40] = {0};
-
-  if(Serial.available() > 0) {
-    int comando = Serial.parseInt();
-    Serial.println("Ok");
+   
+  if(Serial1.available() > 0) {
+    int comando = Serial1.parseInt();
+    Serial1.println(0);
+    
     switch(comando) {
-      case 5:
-        stato_allarme = ALLARME_INSERITO;
+      case 1:
+       accendiSpegniLed( statoLed ,ledPin , 0);
         break;
-      case 6:
-        stato_allarme = ALLARME_SPENTO;
+      case 2:
+        accendiSpegniLed( statoLed ,ledPin , 1);
+        break;
+      case 3:
+        accendiSpegniLed( statoLed ,ledPin , 2);
+        break;
+      case 4:
+        accendiSpegniLed( statoLed ,ledPin , 3);
+        break;
+      case 5:
+        accendiSpegniLed( statoLed ,ledPin , 4);
+        break;   
+      case 6:   //allarme inserito
+        if(stato_allarme == ALLARME_SPENTO){
+          stato_allarme = ALLARME_INSERITO;
+        }else{
+          stato_allarme = ALLARME_SPENTO; 
+        }
+        break; 
+      case 10:
+        Serial1.println(temp_attuale);
+        Serial1.println(umi_attuale);
+        Serial1.println(stato_allarme);
+        Serial.flush();
         break;
     }
   }
+  
   for(int i = 0; i < 5; i++){
     
     int lettura = digitalRead(pulsantePin[i]);
@@ -115,7 +145,7 @@ void loop() {
     umi_attuale =(int)umidita;
   }
   
-  if(temp_attuale > 26){
+  if(temp_attuale > 20){
    analogWrite(pinVentola, 255);
   }else{
     analogWrite(pinVentola, 0);
@@ -188,6 +218,10 @@ void loop() {
     led_colore(0,0,0);
     suona_allarme();
   }
+    statoSensoreFiamma = digitalRead(pinFiamma);
+    if(statoSensoreFiamma == HIGH){
+      stato_allarme = ALLARME_ATTIVO;
+    }
 }
 
 
@@ -236,5 +270,14 @@ String converti_stato_allarme(int stato_allarme){
     case 2:
     return "allarme in corso";
     break;
+  }
+}
+void accendiSpegniLed(int statoLed[], int ledPin[], int i){
+  if(statoLed[i] == HIGH){
+    digitalWrite(ledPin[i], LOW);
+    statoLed[i]= LOW;
+  }else{
+    digitalWrite(ledPin[i], HIGH);
+    statoLed[i] = HIGH;
   }
 }
