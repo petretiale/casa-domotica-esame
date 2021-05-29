@@ -19,14 +19,14 @@ int pinLuceVerde = 9;
 int pinLuceRossa = 6;
 int pinDHT11 = 4;
 int pinVentola = 10;
-int ledPin[] = {36,38,40,42,44};
-int pulsantePin[] = {22,24,26,28,30};
+int ledPin[] = {36,38,40,42,44,46};
+int pulsantePin[] = {22,24,26,28,30,32};
 int pinFiamma = 13;
 
 int statoSensoreFiamma = 0;
-int statoLed[] = {LOW,LOW,LOW,LOW,LOW};
-int statoPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH};
-int ultimaLetturaPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH};
+int statoLed[] = {LOW,LOW,LOW,LOW,LOW,LOW};
+int statoPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH,HIGH};
+int ultimaLetturaPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH,HIGH};
 int attesaDebouncePulsante= 50;
 unsigned long ultimoTempoDebouncePulsante = 0;
 int stato_allarme;
@@ -68,16 +68,16 @@ void setup() {
   pinMode(pinLuceVerde, OUTPUT);
   pinMode(pinLuceBlu, OUTPUT);
   pinMode(pinFiamma, INPUT);
-  for(int i = 0; i < 5; i++){
+  for(int i = 0; i < 6; i++){
     pinMode(ledPin[i],OUTPUT);
     digitalWrite(ledPin[i],LOW);
   }
-  for(int j = 0; j < 5; j++){
+  for(int j = 0; j < 6; j++){
     pinMode(pulsantePin[j], INPUT_PULLUP);
   }
     
   messaggio_lcd("caricamento...");
-  // delay(60000);
+  delay(60000);
   Serial.println("Pronto!\n");
 }
 
@@ -88,7 +88,8 @@ void loop() {
    
   if(Serial1.available() > 0) {
     int comando = Serial1.parseInt();
-    Serial1.println(0);
+    Serial1.println(1); // invio 1 (ok) ad esp32
+    Serial1.flush();
     
     switch(comando) {
       case 1:
@@ -117,12 +118,12 @@ void loop() {
         Serial1.println(temp_attuale);
         Serial1.println(umi_attuale);
         Serial1.println(stato_allarme);
-        Serial.flush();
+        Serial1.flush();
         break;
     }
   }
   
-  for(int i = 0; i < 5; i++){
+  for(int i = 0; i < 6; i++){
     
     int lettura = digitalRead(pulsantePin[i]);
     if(lettura != ultimaLetturaPulsante[i]){            
@@ -216,7 +217,7 @@ void loop() {
     led_colore(255,0,0);
     delay(200);
     led_colore(0,0,0);
-    suona_allarme();
+   // suona_allarme();
   }
     statoSensoreFiamma = digitalRead(pinFiamma);
     if(statoSensoreFiamma == HIGH){

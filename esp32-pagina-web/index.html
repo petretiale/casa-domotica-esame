@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Casa Domotica</title>
+    </head>
+    <body>
+        <div>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Temperatura</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Umidita</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Stato allarme</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <a href="/led1"><button >Stanza 1</button></a>
+        <a href="/led2"><button >Stanza 2</button></a>
+        <a href="/led3"><button >Stanza 3</button></a>
+        <a href="/led4"><button >Stanza 4</button></a>
+        <a href="/led5"><button >Stanza 5</button></a>
+        <a href="/toggle-alarm"><button >Attiva Allarme</button></a>
+        <p class="command-result hidden"></p>
+    </body>
+    <style>
+        .hidden {
+            display: none;
+            visibility: hidden;
+        }
+        .command-result {
+            border: 1px solid black;
+        }
+    </style>
+</html>
