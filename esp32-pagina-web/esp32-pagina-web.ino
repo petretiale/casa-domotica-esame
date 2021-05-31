@@ -15,7 +15,7 @@ IPAddress gateway(192,168,1,1);
 IPAddress subnet(255,255,255,0);
 
 /* Funzioni */
-void sendUpdatedPage(bool commandSuccess = false);
+void sendUpdatedPage(bool commandSuccess);
 bool readStatus(int state[]);
 bool checkSuccessResponse();
 
@@ -46,6 +46,8 @@ void setup() {
   server.on("/led3", [](){ handleRoomLight(3); });
   server.on("/led4", [](){ handleRoomLight(4); });
   server.on("/led5", [](){ handleRoomLight(5); });
+  server.on("/led6", [](){ handleRoomLight(6); });
+  server.on("/cancello", handleCancello);
   server.on("/toggle-alarm", handleToggleAlarm);
   server.begin();
 }
@@ -59,7 +61,7 @@ void loop() {
 
 /* Chiamata dalla pagina iniziale */
 void handleOnConnect() {
-   sendUpdatedPage();
+   sendUpdatedPage(false);
 }
 
 /* Chiamata ogni volta che si preme su un bottone
@@ -72,10 +74,17 @@ void handleRoomLight(int lightIndex) {
   sendUpdatedPage(success);
 }
 
-/* Chiamata per attivare/ disattivare l'allarme*/
-void handleToggleAlarm(){
-  // invia il comando 6 ad arduino per attivare/ disattivare l'allarme
-  Arduino.println(6); 
+/* Chiamata per attivare/ disattivare l'allarme */
+void handleToggleAlarm() {
+  // invia il comando 7 ad arduino per attivare/ disattivare l'allarme
+  Arduino.println(7); 
+  bool success = checkSuccessResponse();
+  sendUpdatedPage(success);
+}
+
+/* Chiamata per aprire/ chiudere cancello */
+void handleCancello() {
+  Arduino.println(8);
   bool success = checkSuccessResponse();
   sendUpdatedPage(success);
 }
@@ -126,7 +135,7 @@ String alarmToString(int state[]) {
 }
 
 /** Invia la pagina web ai dispostivi collegati (es. computer, telefono) */
-void sendUpdatedPage(bool commandSuccess = false) {
+void sendUpdatedPage(bool commandSuccess) {
   readStatus(state);
   server.send(200, "text/html", generateHtml(commandSuccess, state));
 }
@@ -174,6 +183,8 @@ String generateHtml(bool lastCommandSuccess, int state[]) {
     "        <a href=\"/led3\"><button >Stanza 3</button></a>\n"
     "        <a href=\"/led4\"><button >Stanza 4</button></a>\n"
     "        <a href=\"/led5\"><button >Stanza 5</button></a>\n"
+    "        <a href=\"/led6\"><button >Stanza 6</button></a>\n"
+    "        <a href=\"/cancello\"><button >Cancello</button></a>\n"
     "        <a href=\"/toggle-alarm\"><button>" + alarmButton + "</button></a>\n"
     "    </body>\n"
     "    <style>\n"
