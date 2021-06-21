@@ -10,7 +10,8 @@
 #define ALLARME_INSERITO 1
 #define ALLARME_ATTIVO 2
 #define INDIRIZZO_LCD 0x27
-#define SOGLIA 23 - 1
+#define SOGLIA 27 - 1
+#define STOP_CANCELLO 90
 
 int pirPin = 7; // Pin sensore PIR
 int pinBuzzer = 2; // Pin buzzer
@@ -22,7 +23,7 @@ int pinLuceRossa = 6; // Pin led rgb rossa
 int pinDHT11 = 4; // Pin sensore di umidità e temperatura
 int pinVentola = 10;  // Pin motore dc
 int ledPin[] = {36,38,40,42,44,46}; // Pin led
-int pulsantePin[] = {22,24,26,28,30,32}; // Pin pulsanti
+int pulsantePin[] = {22,24,26,28,30,32,23}; // Pin pulsanti
 int pinFiamma = 13; // Pin sensore di fiamma
 int pinServo = 11; // Pin servo cancello
 
@@ -36,6 +37,7 @@ int statoPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH,HIGH,HIGH};
 int ultimaLetturaPulsante[] = {HIGH,HIGH,HIGH,HIGH,HIGH,HIGH, HIGH};
 int stato_allarme;
 int stato_lcd;
+int stato_ventilazione;
 int pirValue;
 int stato_cancello = 0; // stato iniziale chiuso
 int temp_attuale = 0; // stato iniziale temperatura
@@ -78,12 +80,14 @@ void setup() {
   lcd.backlight();
   
   stato_allarme = ALLARME_SPENTO; // stato iniziale 
-
+  stato_ventilazione = LOW;
+  
   pinMode(pirPin, INPUT);
   pinMode(pinBuzzer,OUTPUT);
   pinMode(pinLuceRossa, OUTPUT);
   pinMode(pinLuceVerde, OUTPUT);
   pinMode(pinLuceBlu, OUTPUT);
+  pinMode(pinVentola, OUTPUT);
   pinMode(pinFiamma, INPUT);
   // inizializzazione dei led e dei pulsanti
   for(int i = 0; i < 6; i++){ 
@@ -91,9 +95,10 @@ void setup() {
     digitalWrite(ledPin[i],LOW);
     pinMode(pulsantePin[i], INPUT_PULLUP);
   }
-  // inizializzazione cancello e pulsante
-  cancello.attach(pinServo);
+  // inizializzazione pulsante cancello
   pinMode(pulsantePin[6], INPUT_PULLUP);
+  // inizializzazione ventola
+  digitalWrite(pinVentola, LOW);
     
   messaggio_lcd("caricamento...");
   delay(60000); // attesa per inizializzare PIR
@@ -161,6 +166,7 @@ void loop() {
           statoLed[i] = !statoLed[i];                            
           digitalWrite(ledPin[i], statoLed[i]);          
         } else {
+          Serial.println("Cnacellooo");
           apriChiudiCancello();
         }
       }
@@ -174,41 +180,17 @@ void loop() {
     temp_attuale =(int)temperatura;
     umi_attuale =(int)umidita;
   }
-   // controllo impianto di aria 
-  if(temp_attuale > SOGLIA){
-   analogWrite(pinVentola, 255);
-  }else{
+   // controllo impianto di aria
+
+  if(temp_attuale > SOGLIA and stato_ventilazione == LOW){
+    analogWrite(pinVentola, 255);
+    stato_ventilazione = HIGH;
+  } else if(temp_attuale <= SOGLIA and stato_ventilazione == HIGH) {
     analogWrite(pinVentola, 0);
+    stato_ventilazione = LOW;
   }
-   // antirimbalzo per il display LCD
-  if((millis()- ultimaScritturalcd) > tempo_aggiornamento_lcd){
-    ultimaScritturalcd = millis();
-    switch(stato_lcd){
-      //scrittura di temperatura e umidità sul display LCD
-      case 0:{ 
-        String lcd_temp = (String)"temperatura  " + temp_attuale + "C";
-        String lcd_umi = (String)"umidita  "+ umi_attuale + "%";
-        Serial.println(lcd_temp);
-        Serial.println(lcd_umi);
-        lcd.clear();
-        lcd.setCursor(0,0);
-        messaggio_lcd (lcd_temp);
-        lcd.setCursor(0,1); 
-        messaggio_lcd (lcd_umi);
-        stato_lcd = 1;
-        break;
-      }
-      // scrittura dello stato di allarme sul display LCD
-      case 1:   
-        String lcd_allarme = converti_stato_allarme( stato_allarme);
-        Serial.println(lcd_allarme);
-        lcd.clear();
-        lcd.setCursor(0,0);
-        messaggio_lcd (lcd_allarme);
-        stato_lcd = 0;
-        break;
-    }
-  }
+
+
   // lettura Rfid con antirimbalzo 
   if (rc522.isCard()){
     if((millis()- ultimaLetturaTag) > antirimbalzoTag){
@@ -255,6 +237,36 @@ void loop() {
   statoSensoreFiamma = digitalRead(pinFiamma); // leggo lo stato del sensore di fiamma 
   if(statoSensoreFiamma == HIGH){ // se lo stato del sensore di fiamma è alto 
     stato_allarme = ALLARME_ATTIVO; // lo stato del allarme passa ad attivo
+  }
+  
+   // antirimbalzo per il display LCD
+  if((millis()- ultimaScritturalcd) > tempo_aggiornamento_lcd){
+    ultimaScritturalcd = millis();
+    switch(stato_lcd){
+      //scrittura di temperatura e umidità sul display LCD
+      case 0:{ 
+        String lcd_temp = (String)"temperatura  " + temp_attuale + "C";
+        String lcd_umi = (String)"umidita  "+ umi_attuale + "%";
+        Serial.println(lcd_temp);
+        Serial.println(lcd_umi);
+        lcd.clear();
+        lcd.setCursor(0,0);
+        messaggio_lcd (lcd_temp);
+        lcd.setCursor(0,1); 
+        messaggio_lcd (lcd_umi);
+        stato_lcd = 1;
+        break;
+      }
+      // scrittura dello stato di allarme sul display LCD
+      case 1:   
+        String lcd_allarme = converti_stato_allarme( stato_allarme);
+        Serial.println(lcd_allarme);
+        lcd.clear();
+        lcd.setCursor(0,0);
+        messaggio_lcd (lcd_allarme);
+        stato_lcd = 0;
+        break;
+    }
   }
 }
 
@@ -317,15 +329,15 @@ void accendiSpegniLed(int statoLed[], int ledPin[], int i){
 }
 
 void apriChiudiCancello() {
+  cancello.attach(pinServo);
   if(stato_cancello == 1) {
     cancello.write(71);
-    delay(4000);
-    cancello.write(70);
+    delay(2500);
     stato_cancello = 0;
   } else {
-    cancello.write(68);
-    delay(4000);
-    cancello.write(70);
+    cancello.write(66);
+    delay(3500);
     stato_cancello = 1;
   }
+  cancello.detach();
 }

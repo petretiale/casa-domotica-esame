@@ -136,6 +136,7 @@ String alarmToString(int state[]) {
 
 /** Invia la pagina web ai dispostivi collegati (es. computer, telefono) */
 void sendUpdatedPage(bool commandSuccess) {
+  delay(100);
   readStatus(state);
   server.send(200, "text/html", generateHtml(commandSuccess, state));
 }
