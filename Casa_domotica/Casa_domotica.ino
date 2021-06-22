@@ -73,7 +73,7 @@ void apriChiudiCancello();
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial1.begin(38400);
   SPI.begin();
   rc522.init();
   lcd.init();
@@ -112,8 +112,7 @@ void loop() {
   // gestione dei comandi provenienti da ESP32
   if(Serial1.available() > 0) {
     int comando = Serial1.parseInt();
-    Serial1.println(1); // invio 1 (ok) ad esp32
-    Serial1.flush();
+    delay(50);
     
     switch(comando) {
       case 1:
@@ -330,14 +329,16 @@ void accendiSpegniLed(int statoLed[], int ledPin[], int i){
 
 void apriChiudiCancello() {
   cancello.attach(pinServo);
-  if(stato_cancello == 1) {
-    cancello.write(71);
+  if(stato_cancello == 0) {
+    // apri
+    cancello.write(72);
+    delay(2500);
+    stato_cancello = 1;
+  } else {
+    // chiudi
+    cancello.write(65);
     delay(2500);
     stato_cancello = 0;
-  } else {
-    cancello.write(66);
-    delay(3500);
-    stato_cancello = 1;
   }
   cancello.detach();
 }

@@ -33,7 +33,7 @@ HardwareSerial Arduino(2);
 void setup() {
   Serial.begin(115200);
   // inizializza seriale con arduino
-  Arduino.begin(9600, SERIAL_8N1, RX2, TX2);
+  Arduino.begin(38400, SERIAL_8N1, RX2, TX2);
 
   // crea un hotspot
   WiFi.softAP(ssid, password);
@@ -70,6 +70,7 @@ void handleOnConnect() {
 void handleRoomLight(int lightIndex) {
   // invia il comando ad arudino per accendere le luci (0, 1, 2, ...)
   Arduino.println(lightIndex);
+  Arduino.flush();
   bool success = checkSuccessResponse();
   sendUpdatedPage(success);
 }
@@ -77,7 +78,8 @@ void handleRoomLight(int lightIndex) {
 /* Chiamata per attivare/ disattivare l'allarme */
 void handleToggleAlarm() {
   // invia il comando 7 ad arduino per attivare/ disattivare l'allarme
-  Arduino.println(7); 
+  Arduino.println(7);
+  Arduino.flush();
   bool success = checkSuccessResponse();
   sendUpdatedPage(success);
 }
@@ -85,6 +87,7 @@ void handleToggleAlarm() {
 /* Chiamata per aprire/ chiudere cancello */
 void handleCancello() {
   Arduino.println(8);
+  Arduino.flush();
   bool success = checkSuccessResponse();
   sendUpdatedPage(success);
 }
@@ -94,8 +97,9 @@ void handleCancello() {
  */
 bool readStatus(int state[]) {
   Arduino.println(10); // invia il comando 10 ad arduino per leggere lo stato
-  bool success = checkSuccessResponse();
+  Arduino.flush();
   delay(50);
+  bool success = checkSuccessResponse();
   if(success) {
     // nel vettore state in posizione 0 -> temperatura
     state[0] = Arduino.parseInt();
@@ -112,12 +116,15 @@ bool readStatus(int state[]) {
  * ritorna true se risponde con successo, false altrimenti
  */
 bool checkSuccessResponse() {
+  /*int readed = -1;
   if(Arduino.available() > 0) {
-    // read the incoming byte:
-    int readed = Arduino.parseInt();
-    return (readed == 1) ? true : false;
+    while(readed <= 0) {
+      // read the incoming byte:
+      readed = Arduino.parseInt();
+    }
   }
-  return false;
+  return (readed == 1) ? true : false;*/
+  return true;
 }
 
 /** Converte lo stato di allarme (0, 1, 2)
